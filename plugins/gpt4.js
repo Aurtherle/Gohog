@@ -1,76 +1,44 @@
-import fetch from 'node-fetch';
-
-let handler = async (m, { text, conn, usedPrefix, command }) => {
-  if (!text && !(m.quoted && m.quoted.text)) {
-    throw `Please provide some text or quote a message to get a response.`;
-  }
-
-  if (!text && m.quoted && m.quoted.text) {
-    text = m.quoted.text;
-  }
-
-  try {
-    m.react(rwait)
-    const { key } = await conn.sendMessage(m.chat, {
-      image: { url: 'https://telegra.ph/file/c3f9e4124de1f31c1c6ae.jpg' },
-      caption: 'Thinking....'
-    }, {quoted: m})
-    conn.sendPresenceUpdate('composing', m.chat);
-    const prompt = encodeURIComponent(text);
-
-    const guru1 = `${gurubot}/chatgpt?text=${prompt}`;
-    
-    try {
-      let response = await fetch(guru1);
-      let data = await response.json();
-      let result = data.result;
-
-      if (!result) {
-        
-        throw new Error('No valid JSON response from the first API');
-      }
-
-      await conn.relayMessage(m.chat, {
-        protocolMessage: {
-          key,
-          type: 14,
-          editedMessage: {
-            imageMessage: { caption: result }
-          }
-        }
-      }, {});
-      m.react(done);
-    } catch (error) {
-      console.error('Error from the first API:', error);
-
+import fetch from 'node-fetch'
   
-      const model = 'llama';
-      const senderNumber = m.sender.replace(/[^0-9]/g, ''); 
-      const session = `AURTHER_BOT_${senderNumber}`;
-      const guru2 = `https://ultimetron.guruapi.tech/gpt3?prompt=${prompt}`;
-      
-      let response = await fetch(guru2);
-      let data = await response.json();
-      let result = data.completion;
+var handler = async (m, { conn, isOwner, usedPrefix, command, args }) => {
 
-      await conn.relayMessage(m.chat, {
-        protocolMessage: {
-          key,
-          type: 14,
-          editedMessage: {
-            imageMessage: { caption: result }
-          }
-        }
-      }, {});
-      m.react(done);
-    }
+let text
+if (args.length >= 1) {
+text = args.slice(0).join(' ')
+} else if (m.quoted && m.quoted.text) {
+text = m.quoted.text
+} else return conn.reply(m.chat, `*🎌 Este comando genera imagenes apartir de textos*\n\nEjemplo, !dalle Estrella naciente`, m, fake, )
 
-  } catch (error) {
-    console.error('Error:', error);
-    throw `*ERROR*`;
-  }
-};
-handler.help = ['chatgpt']
-handler.tags = ['AI']
-handler.command = ['bro', 'بوت', 'ارثر', 'gpt'];
-export default handler;
+try {
+
+conn.reply(m.chat, '⏰ Espere un momento', m, fake, )
+await Draw(text).then((img) => {
+conn.sendFile(m.chat, img, text, `*🍧 Resultado de* ${text}\n\n`, m)
+})
+} catch (e) {
+return conn.reply(m.chat, `*🚩 Ocurrió un fallo*`, m, fake, )
+}
+
+}
+handler.help = ['dalle']
+handler.tags = ['ai']
+handler.command = /^(dalle|ارثر|aiimage|aiimg|aimage|iaimagen|openaimage|openaiimage)/i
+  
+export default handler 
+  
+async function Draw(propmt) {
+const Blobs = await fetch(
+'https://api-inference.huggingface.co/models/prompthero/openjourney-v2',
+{
+method: 'POST',
+headers: {
+'content-type': 'application/json',
+Authorization: 'Bearer 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',
+},
+body: JSON.stringify({ inputs: propmt }),
+})
+.then((res) => res.blob())
+const arrayBuffer = await Blobs.arrayBuffer()
+const buffer = Buffer.from(arrayBuffer)
+return buffer
+}
