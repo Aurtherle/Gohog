@@ -2,33 +2,31 @@ const { Aki } = require('aki-api');
 
 const games = {}; // Store active Akinator games with user IDs as keys
 
-const startAkinatorGame = async (m) => {
-    if (!games[m.sender]) {
-        const region = 'ar'; // You can change the region if needed
-        const aki = new Aki({ region });
+const handler = async (m, { conn }) => {
+    const command = m.text.trim().toLowerCase();
 
-        await aki.start();
+    if (command === 'المارد') {
+        if (!games[m.sender]) {
+            const region = 'ar'; // You can change the region if needed
+            const aki = new Aki({ region });
 
-        const question = aki.question;
-        const answers = aki.answers;
+            await aki.start();
 
-        games[m.sender] = { aki };
+            const question = aki.question;
+            const answers = aki.answers;
 
-        const questionText = `*سؤال:* ${question}\n\n*خيارات:*\n\n`;
-        const optionsText = answers.map((answer, index) => `${index + 1}. ${answer}`).join("\n");
+            games[m.sender] = { aki };
 
-        m.reply(`${questionText}${optionsText}`);
+            const questionText = `*سؤال:* ${question}\n\n*خيارات:*\n\n`;
+            const optionsText = answers.map((answer, index) => `${index + 1}. ${answer}`).join("\n");
+
+            m.reply(`${questionText}${optionsText}`);
+        } else {
+            m.reply("لديك لعبة نشطة بالفعل!");
+        }
     } else {
-        m.reply("لديك لعبة نشطة بالفعل!");
-    }
-};
+        if (!games[m.sender]) return; // No active game for the user
 
-const handleUserInput = async (m) => {
-    if (!games[m.sender]) return; // No active game for the user
-
-    if (m.quoted.sender !== '966508206360@s.whatsapp.net') {
-        return;
-    } else {
         // Check if the input is a valid number between 1 and 5
         if (!/^[1-5]$/i.test(m.text)) {
             m.reply("الرجاء اختيار رقم صحيح بين 1 و 5 للإجابة على السؤال.");
@@ -73,9 +71,7 @@ const handleUserInput = async (m) => {
                     headerType: 4,
                 };
 
-                conn.sendMessage(m.chat, buttonMessage, {
-                    quoted: m,
-                });
+                m.reply(buttonMessage);
             } else {
                 m.reply("عجزت اعرف، من كنت تفكر فيه؟");
             }
@@ -91,19 +87,6 @@ const handleUserInput = async (m) => {
 
             m.reply(`${questionText}${optionsText}`);
         }
-    }
-};
-
-const handler = async (m, { conn }) => {
-    const command = m.text.trim().toLowerCase();
-
-    switch (command) {
-        case 'المارد':
-            await startAkinatorGame(m);
-            break;
-        default:
-            await handleUserInput(m);
-            break;
     }
 };
 
